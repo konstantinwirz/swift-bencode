@@ -5,6 +5,9 @@ import PackageDescription
 let package = Package(
     name: "swift-bencode",
     platforms: [.macOS(.v10_15)],
+    products: [
+        .library(name: "Bencode", targets: ["Bencode"])
+    ],
     targets: [
         .target(
             name: "Bencode"
@@ -12,7 +15,7 @@ let package = Package(
         .testTarget(
             name: "BencodeTests",
             dependencies: [
-                .target(name: "Bencode"),
+                .target(name: "Bencode")
             ]
         ),
     ]
