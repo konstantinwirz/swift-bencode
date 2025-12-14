@@ -7,15 +7,14 @@ struct BencodeDecoderTests {
     @Test(
         "can handle valid integers",
         arguments: [
-            (actual: "i3e", expected: 3),
-            (actual: "i-3e", expected: -3),
-            (actual: "i0e", expected: 0),
-            (actual: "i256e", expected: 256),
-            (actual: "i-256e", expected: -256),
+            (input: "i3e", expected: 3),
+            (input: "i-3e", expected: -3),
+            (input: "i0e", expected: 0),
+            (input: "i256e", expected: 256),
+            (input: "i-256e", expected: -256),
         ]
-    ) func decodeValidInts(actual: String, expected: Int) throws {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
-        let intValue = try #require(try decoder.nextValue())
+    ) func decodeValidInts(input: String, expected: Int) throws {
+        let intValue = try #require(try BencodeDecoder.decode(Data(input.utf8)))
         if case .int(let n) = intValue, n != expected {
             Issue.record("Expected \(expected), but got \(n)")
         }
@@ -25,42 +24,40 @@ struct BencodeDecoderTests {
         "can handle invalid integer input",
         arguments: [
             (
-                actual: "i-0e",
-                expected: BencodeDecodeError.badIntValue(value: UInt8(ascii: "0"), pos: 2)
+                input: "i-0e",
+                expected: BencodeDecodeError.badInt(value: UInt8(ascii: "0"), pos: 2)
             ),
             (
-                actual: "i00e",
-                expected: BencodeDecodeError.badIntValue(value: UInt8(ascii: "0"), pos: 2)
+                input: "i00e",
+                expected: BencodeDecodeError.badInt(value: UInt8(ascii: "0"), pos: 2)
             ),
             (
-                actual: "i01e",
-                expected: BencodeDecodeError.badIntValue(value: UInt8(ascii: "0"), pos: 2)
+                input: "i01e",
+                expected: BencodeDecodeError.badInt(value: UInt8(ascii: "0"), pos: 2)
             ),
             (
-                actual: "i--1e",
-                expected: BencodeDecodeError.badIntValue(value: UInt8(ascii: "-"), pos: 2)
+                input: "i--1e",
+                expected: BencodeDecodeError.badInt(value: UInt8(ascii: "-"), pos: 2)
             ),
             (
-                actual: "i-1Qe",
-                expected: BencodeDecodeError.badIntValue(value: UInt8(ascii: "Q"), pos: 3)
+                input: "i-1Qe",
+                expected: BencodeDecodeError.badInt(value: UInt8(ascii: "Q"), pos: 3)
             ),
-            (actual: "i12345", expected: BencodeDecodeError.badIntValue(value: 0, pos: 6)),
+            (input: "i12345", expected: BencodeDecodeError.badInt(value: 0, pos: 6)),
         ])
-    func decodeInvalidInts(actual: String, expected: BencodeDecodeError) {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
+    func decodeInvalidInts(input: String, expected: BencodeDecodeError) {
         #expect(throws: expected) {
-            try decoder.nextValue()
+            try BencodeDecoder.decode(Data(input.utf8))
         }
     }
 
     @Test(
         "can handle valid strings",
         arguments: [
-            (actual: "4:abba", expected: "abba".ascii)
+            (input: "4:abba", expected: "abba".ascii)
         ])
-    func decodeValidStrings(actual: String, expected: [UInt8]) throws {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
-        let stringValue = try #require(try decoder.nextValue())
+    func decodeValidStrings(input: String, expected: [UInt8]) throws {
+        let stringValue = try #require(try BencodeDecoder.decode(Data(input.utf8)))
         if case .string(let bytes) = stringValue, bytes != expected {
             Issue.record("Expected \(expected), but got \(bytes)")
         }
@@ -70,30 +67,29 @@ struct BencodeDecoderTests {
         "can handle invalid strings",
         arguments: [
             (
-                actual: "0:",
-                expected: BencodeDecodeError.badStringValue(value: "0".ascii.first!, pos: 0)
+                input: "0:",
+                expected: BencodeDecodeError.badString(value: "0".ascii.first!, pos: 0)
             ),
-            (actual: "10:abba", expected: BencodeDecodeError.badStringValue(value: 0, pos: 6)),
-            (actual: "250:", expected: BencodeDecodeError.badStringValue(value: 0, pos: 3)),
+            (input: "10:abba", expected: BencodeDecodeError.badString(value: 0, pos: 6)),
+            (input: "250:", expected: BencodeDecodeError.badString(value: 0, pos: 3)),
         ])
-    func decodeInvalidStrings(actual: String, expected: BencodeDecodeError) throws {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
+    func decodeInvalidStrings(input: String, expected: BencodeDecodeError) throws {
         #expect(throws: expected) {
-            try decoder.nextValue()
+            try BencodeDecoder.decode(Data(input.utf8))
         }
     }
 
     @Test(
         "can handle valid lists",
         arguments: [
-            (actual: "le", expected: [BencodeValue]()),
-            (actual: "l4:spame", expected: [BencodeValue.string("spam".ascii)]),
+            (input: "le", expected: [BencodeValue]()),
+            (input: "l4:spame", expected: [BencodeValue.string("spam".ascii)]),
             (
-                actual: "l4:spam4:eggse",
+                input: "l4:spam4:eggse",
                 expected: [BencodeValue.string("spam".ascii), BencodeValue.string("eggs".ascii)]
             ),
             (
-                actual: "l4:spam4:eggsli13ei39eee",
+                input: "l4:spam4:eggsli13ei39eee",
                 expected: [
                     BencodeValue.string("spam".ascii),
                     BencodeValue.string("eggs".ascii),
@@ -101,9 +97,8 @@ struct BencodeDecoderTests {
                 ]
             ),
         ])
-    func decodeValidLists(actual: String, expected: [BencodeValue]) throws {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
-        let listValues = try #require(try decoder.nextValue())
+    func decodeValidLists(input: String, expected: [BencodeValue]) throws {
+        let listValues = try #require(try BencodeDecoder.decode(Data(input.utf8)))
         if case .list(let values) = listValues, values != expected {
             Issue.record("Expected \(expected), but got \(values)")
         }
@@ -113,36 +108,34 @@ struct BencodeDecoderTests {
     @Test(
         "can handle invalid lists",
         arguments: [
-            (actual: "l", expected: BencodeDecodeError.badListValue(value: 0, pos: 1)),
-            (actual: "l4:spam", expected: .badListValue(value: 0, pos: 7)),
+            (input: "l", expected: BencodeDecodeError.badList(value: 0, pos: 1)),
+            (input: "l4:spam", expected: .badList(value: 0, pos: 7)),
             (
-                actual: "li-0ee",
-                expected: .badIntValue(value: UInt8(ascii: "0"), pos: 3)
+                input: "li-0ee",
+                expected: .badInt(value: UInt8(ascii: "0"), pos: 3)
             ),
             (
-                actual: "l0:e",
-                expected: .badStringValue(value: UInt8(ascii: "0"), pos: 1)
+                input: "l0:e",
+                expected: .badString(value: UInt8(ascii: "0"), pos: 1)
             ),
         ])
-    func decodeInvalidLists(actual: String, expected: BencodeDecodeError) {
-        let decoder = BencodeDecoder(source: Data(actual.utf8))
+    func decodeInvalidLists(input: String, expected: BencodeDecodeError) {
         #expect(throws: expected) {
-            try decoder.nextValue()
+            try BencodeDecoder.decode(Data(input.utf8))
         }
     }
 
     @Test(
         "can handle valid dictionaries",
         arguments: [
-            (source: "de", expected: [[UInt8]: BencodeValue]()),
+            (input: "de", expected: [[UInt8]: BencodeValue]()),
             (
-                source: "d7:meaningi42e4:wiki7:bencodee",
+                input: "d7:meaningi42e4:wiki7:bencodee",
                 expected: ["meaning".ascii: 42.bencode, "wiki".ascii: "bencode".bencode]
             ),
         ])
-    func decodeValidDicts(source: String, expected: [[UInt8]: BencodeValue]) throws {
-        let decoder = BencodeDecoder(source: Data(source.utf8))
-        let dict = try #require(try decoder.nextValue())
+    func decodeValidDicts(input: String, expected: [[UInt8]: BencodeValue]) throws {
+        let dict = try #require(try BencodeDecoder.decode(Data(input.utf8)))
         if case .dict(let values) = dict, values != expected {
             Issue.record("Expected \(expected), but got \(values)")
         }
@@ -151,13 +144,12 @@ struct BencodeDecoderTests {
     @Test(
         "can handle invalid dictionaries",
         arguments: [
-            (aource: "d", expected: BencodeDecodeError.badDictKey(pos: 1)),
-            (aource: "d1e", expected: BencodeDecodeError.badStringValue(value: "e".ascii.first!, pos: 2)),
+            (input: "d", expected: BencodeDecodeError.badDictKey(pos: 1)),
+            (input: "d1e", expected: BencodeDecodeError.badString(value: "e".ascii.first!, pos: 2)),
         ])
-    func decodeInvalidDicts(source: String, expected: BencodeDecodeError) {
-        let decoder = BencodeDecoder(source: Data(source.utf8))
+    func decodeInvalidDicts(input: String, expected: BencodeDecodeError) {
         #expect(throws: expected) {
-            try decoder.nextValue()
+            try BencodeDecoder.decode(Data(input.utf8))
         }
     }
 }
