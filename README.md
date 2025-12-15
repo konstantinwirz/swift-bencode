@@ -26,6 +26,8 @@ dependencies: [
 ## Decoding
 
 ```swift
+import Bencode
+
 // Download ubuntu torrent file
 let ubuntu = try await URLSession.shared.data(from: URL(string: "https://releases.ubuntu.com/25.10/ubuntu-25.10-desktop-amd64.iso.torrent")!).0
 
@@ -39,4 +41,12 @@ print(bencodeValue)
 // info : { pieces : <invalid UTF-8>, name : ubuntu-25.10-desktop-amd64.iso, piece length : 262144, 
 // length : 5702520832 }, comment : Ubuntu CD releases.ubuntu.com, 
 // announce : https://torrent.ubuntu.com/announce }
+```
+
+## Encoding
+
+```swift
+import Bencode
+
+let encoded = BencodeEncoder.encode(.int(42))
 ```

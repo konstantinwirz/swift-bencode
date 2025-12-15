@@ -3,14 +3,6 @@ import Foundation
 /// Responsible for bencode encoding
 public class BencodeEncoder {
 
-    private static let intBegin: UInt8 = UInt8(ascii: "i")
-    private static let intEnd: UInt8 = UInt8(ascii: "e")
-    private static let listBegin: UInt8 = UInt8(ascii: "l")
-    private static let listEnd: UInt8 = intEnd
-    private static let dictBegin: UInt8 = UInt8(ascii: "d")
-    private static let dictEnd: UInt8 = intEnd
-    private static let separator: UInt8 = UInt8(ascii: ":")
-
     /// Encode given value
     /// doesn't throw any erros
     public static func encode(_ value: BencodeValue) -> Data {
@@ -24,24 +16,24 @@ public class BencodeEncoder {
 
     @inline(__always)
     private static func encodeInt(_ n: Int) -> [UInt8] {
-        [intBegin] + String(n).map { $0.asciiValue!/* cannot fail, must be a digit */ } + [intEnd]
+        [Bencode.intBegin] + String(n).map { $0.asciiValue!/* cannot fail, must be a digit */ } + [Bencode.intEnd]
     }
 
     @inline(__always)
     private static func encodeString(_ s: [UInt8]) -> [UInt8] {
-        String(s.count).map { $0.asciiValue! /* cannot fail */ } + [separator] + s
+        String(s.count).map { $0.asciiValue! /* cannot fail */ } + [Bencode.separator] + s
     }
 
     @inline(__always)
     private static func encodeList(_ l: [BencodeValue]) -> [UInt8] {
-        [listBegin] + l.map { Self.encode($0) }.reduce([], +) + [listEnd]
+        [Bencode.listBegin] + l.map { Self.encode($0) }.reduce([], +) + [Bencode.listEnd]
     }
 
     @inline(__always)
     private static func encodeDict(_ d: [[UInt8]: BencodeValue]) -> [UInt8] {
-        [dictBegin]
+        [Bencode.dictBegin]
             + d.sorted(by: { $0.key > $1.key }).map { encodeString($0) + encode($1) }.reduce([], +)
-            + [dictEnd]
+            + [Bencode.dictEnd]
     }
 }
 

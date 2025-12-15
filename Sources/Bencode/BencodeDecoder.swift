@@ -22,13 +22,6 @@ public final class BencodeDecoder {
     private var current: UInt
     private let source: Data
 
-    private static let intBegin: UInt8 = UInt8(ascii: "i")
-    private static let intEnd: UInt8 = UInt8(ascii: "e")
-    private static let separator: UInt8 = UInt8(ascii: ":")
-    private static let listBegin: UInt8 = UInt8(ascii: "l")
-    private static let listEnd: UInt8 = intEnd
-    private static let dictBegin: UInt8 = UInt8(ascii: "d")
-    private static let dictEnd: UInt8 = intEnd
     private static let minusSign: UInt8 = UInt8(ascii: "-")
     private static let ascii0: UInt8 = UInt8(ascii: "0")
     private static let ascii1: UInt8 = UInt8(ascii: "1")
@@ -74,10 +67,10 @@ public final class BencodeDecoder {
         }
 
         return switch advance() {
-        case Self.intBegin: .int(try decodeInt())
+        case Bencode.intBegin: .int(try decodeInt())
         case let n where n.isAsciiDigit: .string(try decodeString())
-        case Self.listBegin: .list(try decodeList())
-        case Self.dictBegin: .dict(try decodeDict())
+        case Bencode.listBegin: .list(try decodeList())
+        case Bencode.dictBegin: .dict(try decodeDict())
         case let c: throw .unexpectedValue(value: c, pos: current)
         }
     }
@@ -96,7 +89,7 @@ public final class BencodeDecoder {
         }
 
         var n: Int = 0
-        while let digit = peek(), digit != Self.intEnd {
+        while let digit = peek(), digit != Bencode.intEnd {
             // leading zero are not allowed
             if n == 0 && digit == Self.ascii0 && peekNext()?.isAsciiDigit ?? false {
                 throw .badInt(value: digit, pos: current + 1)
@@ -110,13 +103,13 @@ public final class BencodeDecoder {
         }
 
         // now we expect an 'e' which means end of the int value
-        if peek() != Self.intEnd {
+        if peek() != Bencode.intEnd {
             throw .badInt(value: peek() ?? 0, pos: current)
         }
 
         // consume 'e' if we are not at end
         if peek() != nil {
-            assert(advance() == Self.intEnd)
+            assert(advance() == Bencode.intEnd)
         }
 
         return n * sign
@@ -135,7 +128,7 @@ public final class BencodeDecoder {
         var length: UInt = UInt(first) - 48
 
         // now read the length until :
-        while let digit = peek(), digit != Self.separator {
+        while let digit = peek(), digit != Bencode.separator {
             if !digit.isAsciiDigit {
                 throw .badString(value: digit, pos: current)
             }
@@ -145,11 +138,11 @@ public final class BencodeDecoder {
         }
 
         // we expect :
-        if peek() != Self.separator {
+        if peek() != Bencode.separator {
             throw .badInt(value: peek() ?? 0, pos: current)
         }
         // consume it
-        assert(advance() == Self.separator)
+        assert(advance() == Bencode.separator)
 
         var buf = [UInt8]()
         buf.reserveCapacity(Int(length))
@@ -167,18 +160,18 @@ public final class BencodeDecoder {
 
     private func decodeList() throws(BencodeDecodeError) -> [BencodeValue] {
         // l is already consumed, just check it
-        assert(peekPrevious() == Self.listBegin)
+        assert(peekPrevious() == Bencode.listBegin)
 
         if isFinished() {
             throw .badList(value: 0, pos: current)
         }
 
         var values: [BencodeValue] = []
-        if peek() != Self.listEnd {
+        if peek() != Bencode.listEnd {
             while let value = try nextValue() {
                 values.append(value)
 
-                if peek() == Self.listEnd {
+                if peek() == Bencode.listEnd {
                     break
                 }
             }
@@ -189,25 +182,25 @@ public final class BencodeDecoder {
             throw .badList(value: 0, pos: current)
         }
 
-        guard c == Self.listEnd else {
+        guard c == Bencode.listEnd else {
             throw .badList(value: c, pos: current)
         }
 
-        assert(advance() == Self.listEnd)
+        assert(advance() == Bencode.listEnd)
 
         return values
     }
 
     private func decodeDict() throws(BencodeDecodeError) -> [[UInt8]: BencodeValue] {
         // d is already consumed
-        assert(peekPrevious() == Self.dictBegin)
+        assert(peekPrevious() == Bencode.dictBegin)
 
         if isFinished() {
             throw .badDictKey(pos: current)
         }
 
         var dict: [[UInt8]: BencodeValue] = [:]
-        if peek() != Self.dictEnd {
+        if peek() != Bencode.dictEnd {
             // iterate through the keys
             while let bencodeValue: BencodeValue = try nextValue() {
                 // key must be a string
@@ -224,13 +217,13 @@ public final class BencodeDecoder {
 
                 dict[key] = value
 
-                if peek() == Self.dictEnd {
+                if peek() == Bencode.dictEnd {
                     break
                 }
             }
         }
 
-        assert(advance() == Self.dictEnd)
+        assert(advance() == Bencode.dictEnd)
 
         return dict
     }
